@@ -2,6 +2,7 @@ import * as bodyParser from 'body-parser';
 import * as express from 'express';
 import { NextFunction, Request, Response } from 'express';
 import * as logger from 'morgan';
+import * as path from 'path';
 
 /**
  * Blue print from the main express-powered application
@@ -26,25 +27,22 @@ export class App {
    * @memberof App
    */
   private middleware(): void {
+    // Logger
     this.app.use(logger('dev'));
+    // Parsers
     this.app.use(bodyParser.json());
     this.app.use(bodyParser.urlencoded({ extended: false }));
+    // Angular DIST output folder
+    const oneDay = 86400000; // in milliseconds
+    this.app.use(
+      express.static(path.join(__dirname, '../../frontend/dist'), {
+        setHeaders: (res, path) => {
+          if (path.indexOf('download') !== -1) res.attachment(path);
+        }
+      })
+    );
   }
-  /**
- * Set up a default app's router's handler
- * @private
- * @param {Request} req
- * @param {Response} res
- * @param {NextFunction} next
- * @memberof App
- */
-  private mainRouterHandler(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): void {
-    res.status(200).json({ status: 200, message: 'Welcome To Our Website!' });
-  }
+
   /**
  * Configure the API endpoints
  * @private
@@ -52,9 +50,9 @@ export class App {
  */
   private routes(): void {
     // default router
-    const router = express.Router();
-    router.get('/', this.mainRouterHandler);
-    this.app.use('/', router);
+    this.app.get('*', (req, res) => {
+      res.sendFile(path.resolve(__dirname, '../../frontend/dist/index.html'));
+    });
   }
 }
 
